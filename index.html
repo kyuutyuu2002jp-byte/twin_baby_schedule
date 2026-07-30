@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>双子手続きナビ (Firebase版)</title>
-    <!-- Firebase SDK (Compat版) -->
+    <title>双子手続きナビ (クラウド同期版)</title>
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
@@ -16,11 +16,9 @@
         .header-btn { background: var(--accent); border: none; color: white; font-size: 0.85rem; font-weight: bold; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
         .back-btn { background: none; border: none; color: white; font-size: 1rem; padding: 5px; cursor: pointer; display: none; }
         
-        /* 画面切替 */
         .screen { display: none; padding: 15px; padding-bottom: 80px;}
         .screen.active { display: block; }
 
-        /* 一覧 */
         .list-item { background: white; border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .list-item.completed { opacity: 0.6; background: #f9fdfa; border-left: 4px solid var(--success);}
         .checkbox-area { padding-right: 15px; }
@@ -31,7 +29,6 @@
         .completed .deadline { color: #7f8c8d; }
         .chevron { color: #bdc3c7; font-weight: bold; padding-left: 10px; cursor: pointer;}
 
-        /* 詳細・追加フォーム */
         .card { background: white; border-radius: 8px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .d-title { font-size: 1.1rem; margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; color: #2c3e50;}
         .d-row { display: flex; margin-bottom: 12px; font-size: 0.9rem;}
@@ -39,7 +36,6 @@
         .d-value { flex-grow: 1; }
         .memo-area { margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 15px;}
         
-        /* フォーム系 */
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; color: #555; }
         .form-control { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 0.95rem; background: #fbfcfc; }
@@ -53,18 +49,15 @@
         <button id="addHeaderBtn" class="header-btn" onclick="showAddForm()">＋ 追加</button>
     </header>
 
-    <!-- 一覧画面（Master） -->
     <div id="listScreen" class="screen active">
-        <div id="loading" style="text-align: center; color: #7f8c8d; padding: 20px;">同期中...</div>
+        <div id="loading" style="text-align: center; color: #7f8c8d; padding: 20px; font-weight:bold;">データを読み込み中...</div>
         <div id="taskList"></div>
     </div>
 
-    <!-- 詳細画面（Detail） -->
     <div id="detailScreen" class="screen">
         <div class="card" id="taskDetail"></div>
     </div>
 
-    <!-- 追加画面（Add Form） -->
     <div id="addScreen" class="screen">
         <div class="card">
             <h2 class="d-title">新しい手続きの追加</h2>
@@ -75,35 +68,23 @@
             <div class="form-group">
                 <label>フェーズ</label>
                 <select id="addPhase" class="form-control">
-                    <option>0_産前</option>
-                    <option>1_退院まで</option>
-                    <option>2_産後1週</option>
-                    <option>3_産後1ヶ月</option>
-                    <option>4_引越し前</option>
-                    <option>5_引越し後</option>
-                    <option>6_保育園</option>
-                    <option>7_その他</option>
+                    <option>0_産前</option><option>1_退院まで</option><option>2_産後1週</option>
+                    <option>3_産後1ヶ月</option><option>4_引越し前</option><option>5_引越し後</option>
+                    <option>6_保育園</option><option>7_その他</option>
                 </select>
             </div>
             <div class="form-group">
                 <label>担当者</label>
-                <select id="addAssignee" class="form-control">
-                    <option>父</option>
-                    <option>母</option>
-                    <option>夫婦</option>
-                </select>
+                <select id="addAssignee" class="form-control"><option>父</option><option>母</option><option>夫婦</option></select>
             </div>
             <div class="form-group">
                 <label>期限</label>
-                <input type="text" id="addDeadline" class="form-control" placeholder="例: 産後2ヶ月以内">
+                <input type="text" id="addDeadline" class="form-control" placeholder="例: 引越しの1ヶ月前">
             </div>
             <div class="form-group">
                 <label>優先度</label>
                 <select id="addPriority" class="form-control">
-                    <option>★★★★★</option>
-                    <option>★★★★☆</option>
-                    <option>★★★☆☆</option>
-                    <option>★★☆☆☆</option>
+                    <option>★★★★★</option><option>★★★★☆</option><option>★★★☆☆</option><option>★★☆☆☆</option>
                 </select>
             </div>
             <div class="form-group">
@@ -116,7 +97,7 @@
 
     <script>
         // -------------------------------------------------------------
-        // 【重要】ここにステップ2で取得するFirebase設定を貼り付けます
+        // 【重要】Firebaseの設定をここに貼り付けます
         // -------------------------------------------------------------
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
@@ -127,23 +108,51 @@
             appId: "YOUR_APP_ID"
         };
 
-        // Firebase初期化
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        // データベースが空だった場合に入れる初期リスト
+        const defaultTasks = [
+            { order: 1, phase: "0_産前", title: "限度額適用認定証の取得", assignee: "母", deadline: "入院前まで", priority: "★★★★☆", notes: "帝王切開・NICU等に備え窓口負担軽減" },
+            { order: 2, phase: "0_産前", title: "育休取得の申出", assignee: "夫婦", deadline: "育休開始1ヶ月前", priority: "★★★★★", notes: "父親の「産後パパ育休」も含め打合せ" },
+            { order: 3, phase: "1_退院まで", title: "出生証明書の受領", assignee: "夫婦", deadline: "退院まで", priority: "★★★★★", notes: "必ず双子2人分もらう" },
+            { order: 4, phase: "1_退院まで", title: "出産育児一時金（直接支払）", assignee: "母", deadline: "退院まで", priority: "★★★★★", notes: "合意文書に署名。100万円（50万×2人分）" },
+            { order: 5, phase: "2_産後1週", title: "出生届の提出", assignee: "父", deadline: "出産から14日以内", priority: "★★★★★", notes: "用紙2枚必要。マイナンバーも同時付番" },
+            { order: 6, phase: "2_産後1週", title: "児童手当の認定請求", assignee: "父", deadline: "翌日から15日以内", priority: "★★★★★", notes: "15日ルール厳守。第2・第3子として申請" },
+            { order: 7, phase: "2_産後1週", title: "健康保険 被扶養者追加", assignee: "父", deadline: "出産から5日以内", priority: "★★★★★", notes: "双子2人分。保険証がないと10割負担" },
+            { order: 8, phase: "3_産後1ヶ月", title: "乳幼児医療費助成の申請", assignee: "父", deadline: "到着後速やかに", priority: "★★★★☆", notes: "1ヶ月健診に間に合わせるため急ぐ" },
+            { order: 9, phase: "4_引越し前", title: "転出届 ＆ 児童手当消滅届", assignee: "父", deadline: "引越し当日まで", priority: "★★★★☆", notes: "医療証の返却も忘れずに。" },
+            { order: 10, phase: "5_引越し後", title: "転入届・マイナンバー変更", assignee: "父", deadline: "引越し後14日以内", priority: "★★★★★", notes: "全員分（5名分）の手続きをまとめて行う" },
+            { order: 11, phase: "5_引越し後", title: "児童手当 再認定請求(北区)", assignee: "父", deadline: "転出予定日翌日〜15日", priority: "★★★★★", notes: "【最重要】ここを逃すと数万円損します" },
+            { order: 12, phase: "6_保育園", title: "保育園入園申込み（北区）", assignee: "母", deadline: "北区の申込締切日", priority: "★★★★★", notes: "締切日から逆算して就労証明書を準備" }
+        ];
+
         let tasks = [];
 
-        // Firestoreのリアルタイムリスナー（データが変更されたら即座に画面更新）
-        db.collection("tasks").orderBy("createdAt", "asc").onSnapshot(snapshot => {
-            tasks = [];
-            snapshot.forEach(doc => {
-                tasks.push({ id: doc.id, ...doc.data() });
-            });
-            document.getElementById('loading').style.display = 'none';
-            renderList();
+        // Firestoreの監視（order順に並べる）
+        db.collection("tasks").orderBy("order", "asc").onSnapshot(snapshot => {
+            if (snapshot.empty) {
+                // 初回アクセス時：データベースが空なら自動で初期データを登録
+                document.getElementById('loading').innerText = '初期データをクラウドにセットアップ中...';
+                const batch = db.batch();
+                defaultTasks.forEach(task => {
+                    const docRef = db.collection("tasks").doc();
+                    batch.set(docRef, { ...task, memo: "", completedDate: null });
+                });
+                batch.commit().then(() => {
+                    console.log("初期セットアップ完了");
+                });
+            } else {
+                // データがある場合は画面を描画
+                tasks = [];
+                snapshot.forEach(doc => {
+                    tasks.push({ id: doc.id, ...doc.data() });
+                });
+                document.getElementById('loading').style.display = 'none';
+                renderList();
+            }
         });
 
-        // 一覧表示
         function renderList() {
             const list = document.getElementById('taskList');
             list.innerHTML = '';
@@ -167,7 +176,6 @@
             });
         }
 
-        // チェック状態の切り替え（クラウド更新）
         function toggle(id, checked) {
             let completedDate = null;
             if (checked) {
@@ -177,11 +185,9 @@
             db.collection("tasks").doc(id).update({ completedDate: completedDate });
         }
 
-        // 詳細画面の表示
         function showDetail(id) {
             const t = tasks.find(x => x.id === id);
             switchScreen('detailScreen', '手続き詳細');
-
             document.getElementById('taskDetail').innerHTML = `
                 <h2 class="d-title">${t.title}</h2>
                 <div class="d-row"><div class="d-label">フェーズ</div><div class="d-value">${t.phase || ''}</div></div>
@@ -190,28 +196,25 @@
                 <div class="d-row"><div class="d-label">期限</div><div class="d-value"><strong>${t.deadline || ''}</strong></div></div>
                 <div class="d-row"><div class="d-label">注意事項</div><div class="d-value">${t.notes || ''}</div></div>
                 <div class="memo-area">
-                    <div class="d-label">📝 メモ（自由入力）</div>
+                    <div class="d-label">📝 メモ（自動保存）</div>
                     <textarea class="form-control" rows="4" placeholder="進捗や備忘録..." onblur="saveMemo('${t.id}', this.value)">${t.memo || ''}</textarea>
                 </div>
             `;
         }
 
-        // メモ保存（クラウド更新）
         function saveMemo(id, val) {
             db.collection("tasks").doc(id).update({ memo: val });
         }
 
-        // タスク追加画面の表示
-        function showAddForm() {
-            switchScreen('addScreen', '手続きの追加');
-        }
+        function showAddForm() { switchScreen('addScreen', '手続きの追加'); }
 
-        // 新規タスク保存（クラウド追加）
         function saveNewTask() {
             const title = document.getElementById('addTitle').value;
             if (!title) { alert('手続き名を入力してください'); return; }
 
+            // 一番下に追加されるように、orderに現在時刻の数値を入れる
             db.collection("tasks").add({
+                order: Date.now(),
                 title: title,
                 phase: document.getElementById('addPhase').value,
                 assignee: document.getElementById('addAssignee').value,
@@ -219,10 +222,8 @@
                 priority: document.getElementById('addPriority').value,
                 notes: document.getElementById('addNotes').value,
                 memo: "",
-                completedDate: null,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                completedDate: null
             }).then(() => {
-                // 入力欄リセット
                 document.getElementById('addTitle').value = '';
                 document.getElementById('addNotes').value = '';
                 document.getElementById('addDeadline').value = '';
@@ -230,7 +231,6 @@
             });
         }
 
-        // 画面切り替え共通関数
         function switchScreen(screenId, title) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
@@ -239,7 +239,6 @@
             document.getElementById('headerTitle').innerText = title;
         }
 
-        // 一覧画面に戻る
         function showList() {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('listScreen').classList.add('active');
