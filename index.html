@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>双子手続きナビ</title>
+    <style>
+        :root { --bg: #f0f2f5; --primary: #2c3e50; --accent: #3498db; --success: #2ecc71; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; color: #333; }
+        header { background: var(--primary); color: white; padding: 15px; text-align: center; position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
+        h1 { margin: 0; font-size: 1.1rem; }
+        .back-btn { background: none; border: none; color: white; font-size: 1rem; padding: 5px; cursor: pointer; display: none; }
+        
+        /* 画面切り替え */
+        .screen { display: none; padding: 15px; padding-bottom: 80px;}
+        .screen.active { display: block; }
+
+        /* 一覧画面 */
+        .list-item { background: white; border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .list-item.completed { opacity: 0.6; background: #f9fdfa; border-left: 4px solid var(--success);}
+        .checkbox-area { padding-right: 15px; }
+        .checkbox { width: 22px; height: 22px; accent-color: var(--success); }
+        .content-area { flex-grow: 1; cursor: pointer; }
+        .title { font-weight: bold; margin-bottom: 4px; font-size: 1rem; color: #2c3e50;}
+        .deadline { font-size: 0.8rem; color: #e74c3c; font-weight: bold; }
+        .completed .deadline { color: #7f8c8d; }
+        .chevron { color: #bdc3c7; font-weight: bold; padding-left: 10px; cursor: pointer;}
+
+        /* 詳細画面 */
+        .detail-card { background: white; border-radius: 8px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .d-title { font-size: 1.1rem; margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; color: #2c3e50;}
+        .d-row { display: flex; margin-bottom: 12px; font-size: 0.9rem;}
+        .d-label { width: 90px; color: #7f8c8d; font-weight: bold; flex-shrink: 0;}
+        .d-value { flex-grow: 1; }
+        .memo-area { margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 15px;}
+        .memo-input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; margin-top: 5px; background: #fbfcfc;}
+    </style>
+</head>
+<body>
+    <header>
+        <button id="backBtn" class="back-btn" onclick="showList()">◀ 戻る</button>
+        <h1 id="headerTitle">双子手続き一覧</h1>
+        <div style="width: 60px;"></div> <!-- タイトル中央寄せのダミー -->
+    </header>
+
+    <!-- 一覧画面（Master） -->
+    <div id="listScreen" class="screen active">
+        <div id="taskList"></div>
+    </div>
+
+    <!-- 詳細画面（Detail） -->
+    <div id="detailScreen" class="screen">
+        <div class="detail-card" id="taskDetail"></div>
+    </div>
+
+    <script>
+        // タスクの初期データ
+        const defaultTasks = [
+            { id: 1, phase: "0_産前", title: "限度額適用認定証の取得", assignee: "母", deadline: "入院前まで", priority: "★★★★☆", notes: "帝王切開・NICU等に備え窓口負担軽減", memo: "", completedDate: null },
+            { id: 2, phase: "0_産前", title: "育休取得の申出", assignee: "夫婦", deadline: "育休開始1ヶ月前", priority: "★★★★★", notes: "父親の「産後パパ育休」も含め打合せ", memo: "", completedDate: null },
+            { id: 3, phase: "1_退院まで", title: "出生証明書の受領", assignee: "夫婦", deadline: "退院まで", priority: "★★★★★", notes: "必ず双子2人分もらう", memo: "", completedDate: null },
+            { id: 4, phase: "1_退院まで", title: "出産育児一時金（直接支払）", assignee: "母", deadline: "退院まで", priority: "★★★★★", notes: "合意文書に署名。100万円（50万×2人分）", memo: "", completedDate: null },
+            { id: 5, phase: "2_産後1週", title: "出生届の提出", assignee: "父", deadline: "出産から14日以内", priority: "★★★★★", notes: "用紙2枚必要。マイナンバーも同時付番", memo: "", completedDate: null },
+            { id: 6, phase: "2_産後1週", title: "児童手当の認定請求", assignee: "父", deadline: "翌日から15日以内", priority: "★★★★★", notes: "15日ルール厳守。第2・第3子として申請", memo: "", completedDate: null },
+            { id: 7, phase: "2_産後1週", title: "健康保険 被扶養者追加", assignee: "父", deadline: "出産から5日以内", priority: "★★★★★", notes: "双子2人分。保険証がないと10割負担", memo: "", completedDate: null },
+            { id: 8, phase: "3_産後1ヶ月", title: "乳幼児医療費助成の申請", assignee: "父", deadline: "到着後速やかに", priority: "★★★★☆", notes: "1ヶ月健診に間に合わせるため急ぐ", memo: "", completedDate: null },
+            { id: 9, phase: "4_引越し前", title: "転出届 ＆ 児童手当消滅届", assignee: "父", deadline: "引越し当日まで", priority: "★★★★☆", notes: "医療証の返却も忘れずに。", memo: "", completedDate: null },
+            { id: 10, phase: "5_引越し後", title: "転入届・マイナンバー変更", assignee: "父", deadline: "引越し後14日以内", priority: "★★★★★", notes: "全員分（5名分）の手続きをまとめて行う", memo: "", completedDate: null },
+            { id: 11, phase: "5_引越し後", title: "児童手当 再認定請求(北区)", assignee: "父", deadline: "転出予定日翌日〜15日", priority: "★★★★★", notes: "【最重要】ここを逃すと数万円損します", memo: "", completedDate: null },
+            { id: 12, phase: "6_保育園", title: "保育園入園申込み（北区）", assignee: "母", deadline: "北区の申込締切日", priority: "★★★★★", notes: "締切日から逆算して就労証明書を準備", memo: "", completedDate: null }
+        ];
+
+        // データの読み込み
+        let tasks = JSON.parse(localStorage.getItem('twinsAppMaster')) || defaultTasks;
+
+        function save() { localStorage.setItem('twinsAppMaster', JSON.stringify(tasks)); }
+
+        // 一覧画面の描画
+        function renderList() {
+            const list = document.getElementById('taskList');
+            list.innerHTML = '';
+            tasks.forEach(t => {
+                const isChecked = t.completedDate ? 'checked' : '';
+                const compClass = t.completedDate ? 'completed' : '';
+                const dateText = t.completedDate ? `✅ 完了: ${t.completedDate}` : `期限: ${t.deadline}`;
+                
+                list.innerHTML += `
+                    <div class="list-item ${compClass}">
+                        <div class="checkbox-area">
+                            <input type="checkbox" class="checkbox" ${isChecked} onchange="toggle(${t.id}, this.checked)">
+                        </div>
+                        <div class="content-area" onclick="showDetail(${t.id})">
+                            <div class="title">${t.title}</div>
+                            <div class="deadline">${dateText}</div>
+                        </div>
+                        <div class="chevron" onclick="showDetail(${t.id})">＞</div>
+                    </div>
+                `;
+            });
+        }
+
+        // チェックボックスのON/OFF
+        function toggle(id, checked) {
+            const t = tasks.find(x => x.id === id);
+            if (checked) {
+                const now = new Date();
+                t.completedDate = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+            } else {
+                t.completedDate = null;
+            }
+            save();
+            renderList();
+        }
+
+        // 詳細画面への遷移
+        function showDetail(id) {
+            const t = tasks.find(x => x.id === id);
+            document.getElementById('listScreen').classList.remove('active');
+            document.getElementById('detailScreen').classList.add('active');
+            document.getElementById('backBtn').style.display = 'block';
+            document.getElementById('headerTitle').innerText = "手続き詳細";
+
+            document.getElementById('taskDetail').innerHTML = `
+                <h2 class="d-title">${t.title}</h2>
+                <div class="d-row"><div class="d-label">フェーズ</div><div class="d-value">${t.phase}</div></div>
+                <div class="d-row"><div class="d-label">担当者</div><div class="d-value">${t.assignee}</div></div>
+                <div class="d-row"><div class="d-label">優先度</div><div class="d-value" style="color:#e74c3c;">${t.priority}</div></div>
+                <div class="d-row"><div class="d-label">期限</div><div class="d-value"><strong>${t.deadline}</strong></div></div>
+                <div class="d-row"><div class="d-label">注意事項</div><div class="d-value">${t.notes}</div></div>
+                <div class="memo-area">
+                    <div class="d-label">📝 メモ（自由入力）</div>
+                    <textarea class="memo-input" rows="4" placeholder="進捗や備忘録を入力..." onblur="saveMemo(${t.id}, this.value)">${t.memo || ''}</textarea>
+                </div>
+            `;
+        }
+
+        // メモの保存
+        function saveMemo(id, val) {
+            tasks.find(x => x.id === id).memo = val;
+            save();
+        }
+
+        // 一覧画面へ戻る
+        function showList() {
+            document.getElementById('detailScreen').classList.remove('active');
+            document.getElementById('listScreen').classList.add('active');
+            document.getElementById('backBtn').style.display = 'none';
+            document.getElementById('headerTitle').innerText = "双子手続き一覧";
+            renderList();
+        }
+
+        window.onload = renderList;
+    </script>
+</body>
+</html>
