@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>双子手続きナビ</title>
     <style>
-        :root { --bg: #f0f2f5; --primary: #2c3e50; --accent: #3498db; --success: #2ecc71; }
+        :root { --bg: #f0f2f5; --primary: #2c3e50; --accent: #3498db; --success: #2ecc71; --danger: #e74c3c; --warning: #f39c12; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; color: #333; }
         header { background: var(--primary); color: white; padding: 12px 15px; position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
         h1 { margin: 0; font-size: 1.1rem; }
@@ -28,7 +28,7 @@
         .completed .deadline { color: #7f8c8d; }
         .chevron { color: #bdc3c7; font-weight: bold; padding-left: 10px; cursor: pointer;}
 
-        /* 詳細・追加フォーム */
+        /* 詳細・フォーム */
         .card { background: white; border-radius: 8px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .d-title { font-size: 1.1rem; margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; color: #2c3e50;}
         .d-row { display: flex; margin-bottom: 12px; font-size: 0.9rem;}
@@ -36,11 +36,19 @@
         .d-value { flex-grow: 1; }
         .memo-area { margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 15px;}
         
-        /* フォーム系 */
+        /* ボタン系 */
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; color: #555; }
         .form-control { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 0.95rem; background: #fbfcfc; }
-        .submit-btn { width: 100%; background: var(--success); color: white; border: none; padding: 12px; font-size: 1rem; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 10px; }
+        
+        .btn { width: 100%; border: none; padding: 12px; font-size: 1rem; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 10px; text-align: center; color: white;}
+        .btn-success { background: var(--success); }
+        .btn-warning { background: var(--warning); }
+        .btn-danger { background: var(--danger); }
+        
+        /* 詳細画面のアクションボタン横並び */
+        .action-buttons { display: flex; gap: 10px; margin-top: 25px; }
+        .action-buttons .btn { margin-top: 0; padding: 10px; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -50,58 +58,61 @@
         <button id="addHeaderBtn" class="header-btn" onclick="showAddForm()">＋ 追加</button>
     </header>
 
-    <!-- 一覧画面（Master） -->
+    <!-- 一覧画面 -->
     <div id="listScreen" class="screen active">
         <div id="taskList"></div>
     </div>
 
-    <!-- 詳細画面（Detail） -->
+    <!-- 詳細画面 -->
     <div id="detailScreen" class="screen">
         <div class="card" id="taskDetail"></div>
     </div>
 
-    <!-- 追加画面（Add Form） -->
+    <!-- 追加画面 -->
     <div id="addScreen" class="screen">
         <div class="card">
             <h2 class="d-title">新しい手続きの追加</h2>
-            <div class="form-group">
-                <label>手続き名（必須）</label>
-                <input type="text" id="addTitle" class="form-control" placeholder="例: 学資保険の検討">
-            </div>
-            <div class="form-group">
-                <label>フェーズ</label>
+            <div class="form-group"><label>手続き名（必須）</label><input type="text" id="addTitle" class="form-control"></div>
+            <div class="form-group"><label>フェーズ</label>
                 <select id="addPhase" class="form-control">
-                    <option>0_産前</option><option>1_退院まで</option><option>2_産後1週</option>
-                    <option>3_産後1ヶ月</option><option>4_引越し前</option><option>5_引越し後</option>
-                    <option>6_保育園</option><option>7_その他</option>
+                    <option>0_産前</option><option>1_退院まで</option><option>2_産後1週</option><option>3_産後1ヶ月</option>
+                    <option>4_引越し前</option><option>5_引越し後</option><option>6_保育園</option><option>7_その他</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label>担当者</label>
-                <select id="addAssignee" class="form-control">
-                    <option>父</option><option>母</option><option>夫婦</option>
+            <div class="form-group"><label>担当者</label><select id="addAssignee" class="form-control"><option>父</option><option>母</option><option>夫婦</option></select></div>
+            <div class="form-group"><label>期限</label><input type="text" id="addDeadline" class="form-control"></div>
+            <div class="form-group"><label>優先度</label>
+                <select id="addPriority" class="form-control"><option>★★★★★</option><option>★★★★☆</option><option>★★★☆☆</option><option>★★☆☆☆</option></select>
+            </div>
+            <div class="form-group"><label>注意事項</label><textarea id="addNotes" class="form-control" rows="3"></textarea></div>
+            <button class="btn btn-success" onclick="saveNewTask()">追加を保存する</button>
+        </div>
+    </div>
+
+    <!-- 修正（編集）画面 -->
+    <div id="editScreen" class="screen">
+        <div class="card">
+            <h2 class="d-title">手続きの修正</h2>
+            <div class="form-group"><label>手続き名（必須）</label><input type="text" id="editTitle" class="form-control"></div>
+            <div class="form-group"><label>フェーズ</label>
+                <select id="editPhase" class="form-control">
+                    <option>0_産前</option><option>1_退院まで</option><option>2_産後1週</option><option>3_産後1ヶ月</option>
+                    <option>4_引越し前</option><option>5_引越し後</option><option>6_保育園</option><option>7_その他</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label>期限</label>
-                <input type="text" id="addDeadline" class="form-control" placeholder="例: 産後2ヶ月以内">
+            <div class="form-group"><label>担当者</label><select id="editAssignee" class="form-control"><option>父</option><option>母</option><option>夫婦</option></select></div>
+            <div class="form-group"><label>期限</label><input type="text" id="editDeadline" class="form-control"></div>
+            <div class="form-group"><label>優先度</label>
+                <select id="editPriority" class="form-control"><option>★★★★★</option><option>★★★★☆</option><option>★★★☆☆</option><option>★★☆☆☆</option></select>
             </div>
-            <div class="form-group">
-                <label>優先度</label>
-                <select id="addPriority" class="form-control">
-                    <option>★★★★★</option><option>★★★★☆</option><option>★★★☆☆</option><option>★★☆☆☆</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>注意事項・メモ</label>
-                <textarea id="addNotes" class="form-control" rows="3" placeholder="提出先や必要な書類など"></textarea>
-            </div>
-            <button class="submit-btn" onclick="saveNewTask()">追加を保存する</button>
+            <div class="form-group"><label>注意事項</label><textarea id="editNotes" class="form-control" rows="3"></textarea></div>
+            <button class="btn btn-warning" onclick="saveEditedTask()">修正を保存する</button>
+            <button class="btn" style="background:#bdc3c7; margin-top:10px;" onclick="showDetail(currentEditId)">キャンセル</button>
         </div>
     </div>
 
     <script>
-        // タスクの初期データ（12個）
+        // タスクの初期データ
         const defaultTasks = [
             { id: 1, phase: "0_産前", title: "限度額適用認定証の取得", assignee: "母", deadline: "入院前まで", priority: "★★★★☆", notes: "帝王切開・NICU等に備え窓口負担軽減", memo: "", completedDate: null },
             { id: 2, phase: "0_産前", title: "育休取得の申出", assignee: "夫婦", deadline: "育休開始1ヶ月前", priority: "★★★★★", notes: "父親の「産後パパ育休」も含め打合せ", memo: "", completedDate: null },
@@ -113,19 +124,19 @@
             { id: 8, phase: "3_産後1ヶ月", title: "乳幼児医療費助成の申請", assignee: "父", deadline: "到着後速やかに", priority: "★★★★☆", notes: "1ヶ月健診に間に合わせるため急ぐ", memo: "", completedDate: null },
             { id: 9, phase: "4_引越し前", title: "転出届 ＆ 児童手当消滅届", assignee: "父", deadline: "引越し当日まで", priority: "★★★★☆", notes: "医療証の返却も忘れずに。", memo: "", completedDate: null },
             { id: 10, phase: "5_引越し後", title: "転入届・マイナンバー変更", assignee: "父", deadline: "引越し後14日以内", priority: "★★★★★", notes: "全員分（5名分）の手続きをまとめて行う", memo: "", completedDate: null },
-            { id: 11, phase: "5_引越し後", title: "児童手当 再認定請求(北区)", assignee: "父", deadline: "転出予定日翌日〜15日", priority: "★★★★★", notes: "【最重要】ここを逃すと数万円損します", memo: "", completedDate: null },
-            { id: 12, phase: "6_保育園", title: "保育園入園申込み（北区）", assignee: "母", deadline: "北区の申込締切日", priority: "★★★★★", notes: "締切日から逆算して就労証明書を準備", memo: "", completedDate: null }
+            { id: 11, phase: "6_保育園", title: "保育園入園申込み（北区）", assignee: "母", deadline: "北区の申込締切日", priority: "★★★★★", notes: "締切日から逆算して就労証明書を準備", memo: "", completedDate: null }
+            { id: 12, phase: "2_産後1週", title: "出生通知の投函", assignee: "父", deadline: "産後速やかに", priority: "★★★★★", notes: "書類の紙袋に保管", memo: "", completedDate: null }
+            { id: 13, phase: "2_産後1週", title: "出産手当の申請", assignee: "父", deadline: "産後速やかに", priority: "★★★★★", notes: "オレンジ色の紙　生まれたら病院に持参→USEN/プレミアに申請", memo: "", completedDate: null }
+            { id: 14, phase: "2_産後1週", title: "出産手当の申請", assignee: "父", deadline: "産後速やかに", priority: "★★★★★", notes: "オレンジ色の紙", memo: "", completedDate: null }
+            { id: 15, phase: "2_産後1週", title: "出産手当金・育児休業給付金・出産祝い金（プレミア）", assignee: "母", deadline: "産後速やかに", priority: "★★★★★", notes: "プレミアに申請（母子手帳・本人名義の通帳）", memo: "", completedDate: null }
+            { id: 16, phase: "2_産後1週", title: "多胎児家庭タクシー給付交付申請", assignee: "父", deadline: "産後速やかに", priority: "★★★★★", notes: "子供青少年局管理課への申請", memo: "", completedDate: null }
         ];
 
-        // データの読み込み (ブラウザのローカルストレージから)
         let tasks = JSON.parse(localStorage.getItem('twinsAppLocalData')) || defaultTasks;
+        let currentEditId = null; // 現在編集中のタスクIDを保持
 
-        // データの保存
-        function save() { 
-            localStorage.setItem('twinsAppLocalData', JSON.stringify(tasks)); 
-        }
+        function save() { localStorage.setItem('twinsAppLocalData', JSON.stringify(tasks)); }
 
-        // 一覧画面の描画
         function renderList() {
             const list = document.getElementById('taskList');
             list.innerHTML = '';
@@ -149,7 +160,6 @@
             });
         }
 
-        // チェックボックスのON/OFF
         function toggle(id, checked) {
             const t = tasks.find(x => x.id === id);
             if (checked) {
@@ -162,7 +172,7 @@
             renderList();
         }
 
-        // 詳細画面への遷移
+        // --- 詳細画面の表示 ---
         function showDetail(id) {
             const t = tasks.find(x => x.id === id);
             switchScreen('detailScreen', '手続き詳細');
@@ -174,31 +184,48 @@
                 <div class="d-row"><div class="d-label">優先度</div><div class="d-value" style="color:#e74c3c;">${t.priority}</div></div>
                 <div class="d-row"><div class="d-label">期限</div><div class="d-value"><strong>${t.deadline}</strong></div></div>
                 <div class="d-row"><div class="d-label">注意事項</div><div class="d-value">${t.notes}</div></div>
+                
                 <div class="memo-area">
                     <div class="d-label">📝 メモ（自動保存）</div>
                     <textarea class="form-control" rows="4" placeholder="進捗や備忘録を入力..." onblur="saveMemo(${t.id}, this.value)">${t.memo || ''}</textarea>
                 </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-warning" onclick="openEditForm(${t.id})">✏️ 修正する</button>
+                    <button class="btn btn-danger" onclick="deleteTask(${t.id})">🗑 削除する</button>
+                </div>
             `;
         }
 
-        // メモの保存
         function saveMemo(id, val) {
             tasks.find(x => x.id === id).memo = val;
             save();
         }
 
-        // タスク追加画面の表示
+        // --- タスクの削除 ---
+        function deleteTask(id) {
+            if (confirm("本当にこの手続きを削除してもよろしいですか？\n（この操作は取り消せません）")) {
+                tasks = tasks.filter(t => t.id !== id);
+                save();
+                showList();
+            }
+        }
+
+        // --- タスクの追加 ---
         function showAddForm() {
+            // フォームをリセット
+            document.getElementById('addTitle').value = '';
+            document.getElementById('addDeadline').value = '';
+            document.getElementById('addNotes').value = '';
             switchScreen('addScreen', '手続きの追加');
         }
 
-        // 新しいタスクの保存
         function saveNewTask() {
             const title = document.getElementById('addTitle').value;
             if (!title) { alert('手続き名を入力してください'); return; }
 
-            const newTask = {
-                id: Date.now(), // 現在の時刻を固有IDにする
+            tasks.push({
+                id: Date.now(),
                 phase: document.getElementById('addPhase').value,
                 title: title,
                 assignee: document.getElementById('addAssignee').value,
@@ -207,39 +234,72 @@
                 notes: document.getElementById('addNotes').value,
                 memo: "",
                 completedDate: null
-            };
-
-            tasks.push(newTask);
+            });
             save();
-
-            // 入力欄をクリア
-            document.getElementById('addTitle').value = '';
-            document.getElementById('addNotes').value = '';
-            document.getElementById('addDeadline').value = '';
-            
-            showList(); // 一覧に戻る
+            showList();
         }
 
-        // 画面切り替え共通関数
+        // --- タスクの修正（編集） ---
+        function openEditForm(id) {
+            currentEditId = id;
+            const t = tasks.find(x => x.id === id);
+            
+            // 現在の値をフォームにセットする
+            document.getElementById('editTitle').value = t.title;
+            document.getElementById('editPhase').value = t.phase;
+            document.getElementById('editAssignee').value = t.assignee;
+            document.getElementById('editDeadline').value = t.deadline;
+            document.getElementById('editPriority').value = t.priority;
+            document.getElementById('editNotes').value = t.notes;
+
+            switchScreen('editScreen', '手続きの修正');
+        }
+
+        function saveEditedTask() {
+            const title = document.getElementById('editTitle').value;
+            if (!title) { alert('手続き名を入力してください'); return; }
+
+            const t = tasks.find(x => x.id === currentEditId);
+            t.title = title;
+            t.phase = document.getElementById('editPhase').value;
+            t.assignee = document.getElementById('editAssignee').value;
+            t.deadline = document.getElementById('editDeadline').value;
+            t.priority = document.getElementById('editPriority').value;
+            t.notes = document.getElementById('editNotes').value;
+
+            save();
+            showDetail(currentEditId); // 修正後は詳細画面に戻る
+        }
+
+        // --- 画面切り替え ---
         function switchScreen(screenId, title) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
-            document.getElementById('backBtn').style.display = 'block';
-            document.getElementById('addHeaderBtn').style.display = 'none';
+            
+            // 戻るボタンの制御
+            if(screenId === 'listScreen') {
+                document.getElementById('backBtn').style.display = 'none';
+                document.getElementById('addHeaderBtn').style.display = 'block';
+            } else {
+                document.getElementById('backBtn').style.display = 'block';
+                document.getElementById('addHeaderBtn').style.display = 'none';
+            }
+            
+            // リスト画面に戻る場合のみ専用の関数を呼ぶように上書き（編集から詳細へ戻るケースを考慮）
+            if(screenId === 'editScreen') {
+                document.getElementById('backBtn').onclick = () => showDetail(currentEditId);
+            } else {
+                document.getElementById('backBtn').onclick = () => showList();
+            }
+
             document.getElementById('headerTitle').innerText = title;
         }
 
-        // 一覧画面へ戻る
         function showList() {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById('listScreen').classList.add('active');
-            document.getElementById('backBtn').style.display = 'none';
-            document.getElementById('addHeaderBtn').style.display = 'block';
-            document.getElementById('headerTitle').innerText = "双子手続き一覧";
+            switchScreen('listScreen', '双子手続き一覧');
             renderList();
         }
 
-        // 起動時にリストを描画
         window.onload = renderList;
     </script>
 </body>
